@@ -70,7 +70,7 @@ public class CatBot
                 api.registerListener(new MessageCreateListener() {
                     @Override
                     public void onMessageCreate(DiscordAPI api, final Message message) {
-                    	if(message.getChannelReceiver() != null) return;
+                    	//if(message.getChannelReceiver() != null) return;
                     	if(message.getContent().contains("Fetching"))
                     	{
                     		while(fetching)
