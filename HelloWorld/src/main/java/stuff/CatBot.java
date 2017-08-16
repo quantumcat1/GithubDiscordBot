@@ -1,12 +1,9 @@
 package stuff;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.URL;
+import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -24,10 +21,6 @@ import org.kohsuke.github.GitHub;
 import org.kohsuke.github.PagedIterable;
 
 import com.google.common.util.concurrent.FutureCallback;
-import com.sun.syndication.feed.synd.SyndEntryImpl;
-import com.sun.syndication.feed.synd.SyndFeed;
-import com.sun.syndication.io.SyndFeedInput;
-import com.sun.syndication.io.XmlReader;
 
 import de.btobastian.javacord.DiscordAPI;
 import de.btobastian.javacord.Javacord;
@@ -40,9 +33,14 @@ public class CatBot
 	String user;
 	String password;
 	String token;
+	ByteArrayOutputStream console;
 	boolean fetching = false;
 	public CatBot()
 	{
+		console = new ByteArrayOutputStream();
+		PrintStream ps = new PrintStream(console);
+		System.setOut(ps);
+
 		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		try (InputStream input = classLoader.getResourceAsStream("config.properties"))
 		{
@@ -181,7 +179,7 @@ public class CatBot
                         		c.add(Calendar.MINUTE, -10);
                         		Date d = c.getTime();
                         		RepoTS r = requests.get(author + "/" + project);
-                        		if(r == null || r.getTimestamp().before(d)) message.reply("Fetching, please wait!");
+                        		if(r == null || r.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
                         		new SwingWorker<Void, Void> ()
                         		{
                         			String m;
@@ -214,6 +212,11 @@ public class CatBot
                 t.printStackTrace();
             }
         });
+	}
+
+	public String getConsole()
+	{
+		return console.toString();
 	}
 
 	private GHCommit getLatestCommit(String lookup)
@@ -298,6 +301,7 @@ public class CatBot
 			GHRelease release = getLatestRelease(lookup);
 			GHCommit commit = getLatestCommit(lookup);
 			if(commit == null) return "Author (" + author + ") and project (" + project + ") combination not found.";
+			if(commit != null && release == null && isRelease) return project + " by " + author + " has no releases yet.";
 			r = new RepoTS(release, commit, new Date());
 
 			requests.put(lookup, r);
