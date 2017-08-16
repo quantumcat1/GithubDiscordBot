@@ -77,59 +77,63 @@ public class CatBot
                     			message.edit(message.getContent() + ".");
                     		}
                     	}
-                    	if (message.getContent().equalsIgnoreCase(".ping"))
+                    	if(message.getContent().toCharArray()[0] != '$')
+		                {
+                    		return;
+		                }
+                    	if (message.getContent().equalsIgnoreCase("$ping"))
                         {
                         	message.reply("pong");
                         }
-                        else if (message.getContent().equalsIgnoreCase(".help"))
+                        else if (message.getContent().equalsIgnoreCase("$help"))
                         {
                         	message.reply("**Commands:**\n"
-                        			+ ".r author project = latest release of the specified project by the specified author\n"
-                        			+ ".c author project = latest commit of the specified project by the specified author\n"
-                        			+ "\n**Shortcut repositories**"
-                        			+ ".fbi = latest release of FBI by Steveice10\n"
-                        			+ ".lumaupdater = latest release of Luma Updater by KunoichiZ\n"
-                        			+ ".luma = latest release of Luma3DS by AuroraWright\n"
-                        			+ ".reinand = latest release of ReiNAND by Reisyukaku\n"
-                        			+ ".ntrboot = latest release of NTRboot flasher by kitling\n"
-                        			+ ".gm9 = latest release of GodMode9 flasher by d0k3\n"
-                        			+ ".b9s = latest release of Boot9Strap by SciresM\n"
-                        			+ ".guide = latest commit of the Guide by Plailect"
+                        			+ "$r author project = latest release of the specified project by the specified author\n"
+                        			+ "$c author project = latest commit of the specified project by the specified author\n"
+                        			+ "\n\n**Shortcut repositories:**\n"
+                        			+ "$fbi = latest release of FBI by Steveice10\n"
+                        			+ "$lumaupdater = latest release of Luma Updater by KunoichiZ\n"
+                        			+ "$luma = latest release of Luma3DS by AuroraWright\n"
+                        			+ "$reinand = latest release of ReiNAND by Reisyukaku\n"
+                        			+ "$ntrboot = latest release of NTRboot flasher by kitling\n"
+                        			+ "$gm9 = latest release of GodMode9 flasher by d0k3\n"
+                        			+ "$b9s = latest release of Boot9Strap by SciresM\n"
+                        			+ "$guide = latest commit of the Guide by Plailect"
                         			);
                         }
-                        else if (message.getContent().equalsIgnoreCase(".fbi"))
+                        else if (message.getContent().equalsIgnoreCase("$fbi"))
                         {
                         	message.reply(message("Steveice10", "FBI", true));
                         }
-                        else if (message.getContent().equalsIgnoreCase(".lumaupdater"))
+                        else if (message.getContent().equalsIgnoreCase("$lumaupdater"))
                         {
                         	message.reply(message("KunoichiZ", "lumaupdate", true));
                         }
-                        else if (message.getContent().equalsIgnoreCase(".reinand"))
+                        else if (message.getContent().equalsIgnoreCase("$reinand"))
                         {
                         	message.reply(message("Reisyukaku", "ReiNand", true));
                         }
-                        else if (message.getContent().equalsIgnoreCase(".ntrboot"))
+                        else if (message.getContent().equalsIgnoreCase("$ntrboot"))
                         {
                         	message.reply(message("kitling", "ntrboot_flasher", true));
                         }
-                        else if (message.getContent().equalsIgnoreCase(".luma"))
+                        else if (message.getContent().equalsIgnoreCase("$luma"))
                         {
                         	message.reply(message("AuroraWright", "Luma3DS", true));
                         }
-                        else if(message.getContent().equalsIgnoreCase(".gm9"))
+                        else if(message.getContent().equalsIgnoreCase("$gm9"))
                         {
                         	message.reply(message("d0k3", "GodMode9", true));
                         }
-                        else if(message.getContent().equalsIgnoreCase(".guide"))
+                        else if(message.getContent().equalsIgnoreCase("$guide"))
                         {
                         	message.reply(message("Plailect", "Guide", false));
                         }
-                        else if(message.getContent().equalsIgnoreCase(".b9s"))
+                        else if(message.getContent().equalsIgnoreCase("$b9s"))
                         {
                         	message.reply(message("SciresM", "boot9strap", true));
                         }
-                        else if(message.getContent().split(" ")[0].equalsIgnoreCase(".r"))
+                        else if(message.getContent().split(" ")[0].equalsIgnoreCase("$r"))
                         {
                         	String[] list = message.getContent().split(" ");
                         	if(list.length < 3)
@@ -164,7 +168,7 @@ public class CatBot
                         		}.execute();
                         	}
                         }
-                        else if(message.getContent().split(" ")[0].equalsIgnoreCase(".c"))
+                        else if(message.getContent().split(" ")[0].equalsIgnoreCase("$c"))
                         {
                         	String[] list = message.getContent().split(" ");
                         	if(list.length < 3)
@@ -201,7 +205,7 @@ public class CatBot
                         }
                         else
                         {
-                        	if(!message.getAuthor().isYourself()) message.reply("Unrecognised command. Use \".help\" to see a list of commands.");
+                        	if(!message.getAuthor().isYourself()) message.reply("Unrecognised command. Use \"$help\" to see a list of commands.");
                         }
                     }
                 });
