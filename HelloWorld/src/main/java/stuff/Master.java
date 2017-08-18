@@ -21,9 +21,9 @@ public class Master implements Serializable
 		catbot = new CatBot();
 	}
 
-	public String getConsole()
+	public String getHello()
 	{
-		return catbot.getConsole();
+		return "Catbot initialised!";
 	}
 
 }

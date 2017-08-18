@@ -33,13 +33,13 @@ public class CatBot
 	String user;
 	String password;
 	String token;
-	ByteArrayOutputStream console;
+	//ByteArrayOutputStream console;
 	boolean fetching = false;
 	public CatBot()
 	{
-		console = new ByteArrayOutputStream();
-		PrintStream ps = new PrintStream(console);
-		System.setOut(ps);
+		//console = new ByteArrayOutputStream();
+		//PrintStream ps = new PrintStream(console);
+		//System.setOut(ps);
 
 		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		try (InputStream input = classLoader.getResourceAsStream("config.properties"))
@@ -218,10 +218,10 @@ public class CatBot
         });
 	}
 
-	public String getConsole()
+	/*public String getConsole()
 	{
 		return console.toString();
-	}
+	}*/
 
 	private GHCommit getLatestCommit(String lookup)
 	{
