@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,12 +31,15 @@ import de.btobastian.javacord.listener.message.MessageCreateListener;
 public class CatBot
 {
 	Map<String, RepoTS> requests;
+	String superUser;
+	List<String> authorisedUsers;
+	Map<String, GHRepository> shortcuts;
 	String user;
 	String password;
 	String token;
 	//ByteArrayOutputStream console;
 	boolean fetching = false;
-	public CatBot()
+	public CatBot(Map<String, RepoTS> requestsc, String superUserc, List<String> authorisedUsersc, Map<String, GHRepository> shortcutsc)
 	{
 		//console = new ByteArrayOutputStream();
 		//PrintStream ps = new PrintStream(console);
@@ -56,7 +60,39 @@ public class CatBot
 			e.printStackTrace();
 		}
 
-		requests = new HashMap<String, RepoTS>();
+		if(requestsc != null)
+		{
+			requests = requestsc;
+		}
+		else
+		{
+			requests = new HashMap<>();
+		}
+		if(shortcutsc != null)
+		{
+			shortcuts = shortcutsc;
+		}
+		else
+		{
+			shortcuts = new HashMap<>();
+		}
+		if(authorisedUsersc != null)
+		{
+			authorisedUsers = authorisedUsersc;
+		}
+		else
+		{
+			authorisedUsers = new ArrayList<>();
+		}
+		if(superUserc != null)
+		{
+			superUser = superUserc;
+		}
+		else
+		{
+			superUser = "ihaveahax";
+		}
+
 
 		DiscordAPI api = Javacord.getApi(token, true);
 
@@ -68,7 +104,9 @@ public class CatBot
                 api.registerListener(new MessageCreateListener() {
                     @Override
                     public void onMessageCreate(DiscordAPI api, final Message message) {
-                    	//if(message.getChannelReceiver() != null) return;
+                    	GHRepository r = shortcuts.get(message.getContent().split(" ")[0].substring(1));
+
+                    	//allows for it to animate .... as it is loading
                     	if(message.getContent().contains("Fetching"))
                     	{
                     		while(fetching)
@@ -77,62 +115,130 @@ public class CatBot
                     			message.edit(message.getContent() + ".");
                     		}
                     	}
+                    	//if not a command, get out
                     	if(message.getContent().toCharArray()[0] != '$')
 		                {
                     		return;
 		                }
-                    	if (message.getContent().equalsIgnoreCase("$ping"))
+                    	//if a shortcut that we have previously entered
+                    	else if(r != null)
+                    	{
+                    		String temp = "";
+                    		try{temp = r.getOwner().getLogin();}catch(Exception e){e.printStackTrace();}
+                    		final String author = temp;
+                    		final String project = r.getName();
+                    		Calendar c = Calendar.getInstance();
+                    		c.add(Calendar.MINUTE, -10);
+                    		Date d = c.getTime();
+                    		RepoTS repo = requests.get(author + "/" + project);
+                    		if(repo == null || repo.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
+                    		new SwingWorker<Void, Void> ()
+                    		{
+                    			String m;
+								@Override
+								protected Void doInBackground() throws Exception
+								{
+									fetching = true;
+									m = message(author, project, true);
+									return null;
+								}
+								@Override
+								protected void done()
+								{
+									message.reply(m);
+									fetching = false;
+								}
+                    		}.execute();
+                    	}
+                    	//add new authorised user
+                    	else if(message.getAuthor().getName().equals(superUser) && message.getContent().split(" ")[0].equals("$adduser"))
+                    	{
+                    		String[] list = message.getContent().split(" ");
+                        	if(list.length < 2)
+                        	{
+                        		message.reply("You need to supply an argument - the user name of the person you want to add to the authorised users list");
+                        	}
+                        	else
+                        	{
+                        		boolean added = authorisedUsers.add(list[1]);
+                        		String thing = added ? "Successfully added " + list[1] : "Could not add " + list[1];
+                        		message.reply(thing);
+                        	}
+                    	}
+                    	//remove authorised user
+                    	else if(message.getAuthor().getName().equals(superUser) && message.getContent().split(" ")[0].equals("$removeuser"))
+                    	{
+                    		String[] list = message.getContent().split(" ");
+                        	if(list.length < 2)
+                        	{
+                        		message.reply("You need to supply an argument - the user name of the person you want to remove from the authorised users list");
+                        	}
+                        	else
+                        	{
+                        		boolean removed = authorisedUsers.remove(list[1]);
+                        		String thing = removed ? "Successfully removed " + list[1] : "Could not remove " + list[1];
+                        		message.reply(thing);
+                        	}
+
+                    	}
+
+                    	//adding a repo to the shortcuts
+                    	else if(message.getContent().split(" ")[0].equalsIgnoreCase("$s") && authorisedUsers.contains(message.getAuthor().getName()))
+                    	{
+                    		String[] list = message.getContent().split(" ");
+                        	if(list.length < 4)
+                        	{
+                        		message.reply("You need to supply three arguments - 1st, shortcut, 2nd, author, 3rd, repository.");
+                        	}
+                        	else
+                        	{
+                        		String shortcut = list[1];
+                        		String author = list[2];
+                        		String repo = list[3];
+                    			r = null;
+                    			try
+                    			{
+                    				GitHub github = GitHub.connectUsingPassword(user, password);
+                    				r = github.getRepository(author + "/" + repo);
+                    				if(r == null)
+                    				{
+                    					message.reply("Repository " + repo + " by " + author + " not found");
+                    				}
+                    				else
+                    				{
+                    					shortcuts.put(shortcut, r);
+                    					message.reply(repo + " by " + author + " added successfully with shortcut $" + shortcut);
+                    				}
+                    			}
+                    			catch(Exception e)
+                    			{
+                    				e.printStackTrace();
+                    			}
+                        	}
+                    	}
+                    	//simple command to check to see if bot is awake
+                    	else if(message.getContent().equalsIgnoreCase("$ping"))
                         {
                         	message.reply("pong");
                         }
-                        else if (message.getContent().equalsIgnoreCase("$help"))
+                    	//display help
+                        else if(message.getContent().equalsIgnoreCase("$help"))
                         {
-                        	message.reply("**Commands:**\n"
-                        			+ "$r author project = latest release of the specified project by the specified author\n"
-                        			+ "$c author project = latest commit of the specified project by the specified author\n"
-                        			+ "\n\n**Shortcut repositories:**\n"
-                        			+ "$fbi = latest release of FBI by Steveice10\n"
-                        			+ "$lumaupdater = latest release of Luma Updater by KunoichiZ\n"
-                        			+ "$luma = latest release of Luma3DS by AuroraWright\n"
-                        			+ "$reinand = latest release of ReiNAND by Reisyukaku\n"
-                        			+ "$ntrboot = latest release of NTRboot flasher by kitling\n"
-                        			+ "$gm9 = latest release of GodMode9 flasher by d0k3\n"
-                        			+ "$b9s = latest release of Boot9Strap by SciresM\n"
-                        			+ "$guide = latest commit of the Guide by Plailect"
-                        			);
+                        	String thing = "$r author project = latest release of the specified project by the specified author\n"
+                        			+ "$c author project = latest commit of the specified project by the specified author";
+                        	if(authorisedUsers.contains(message.getAuthor().getName()))
+                        	{
+                        		thing += "\n$s shortcut author project = add shortcut to specified repository with the command 'shortcut' (don't include the '$')";
+                        	}
+                        	if(message.getAuthor().getName().equals(superUser))
+                        	{
+                        		thing += "\n$adduser user = add specified user to authorised users list (they can add repository shortcuts)"
+                        				+ "\n$removeuser user = remove specified user from authorised users list";
+                        	}
+                        	message.reply("**Commands:**\n" + thing);
+
                         }
-                        else if (message.getContent().equalsIgnoreCase("$fbi"))
-                        {
-                        	message.reply(message("Steveice10", "FBI", true));
-                        }
-                        else if (message.getContent().equalsIgnoreCase("$lumaupdater"))
-                        {
-                        	message.reply(message("KunoichiZ", "lumaupdate", true));
-                        }
-                        else if (message.getContent().equalsIgnoreCase("$reinand"))
-                        {
-                        	message.reply(message("Reisyukaku", "ReiNand", true));
-                        }
-                        else if (message.getContent().equalsIgnoreCase("$ntrboot"))
-                        {
-                        	message.reply(message("kitling", "ntrboot_flasher", true));
-                        }
-                        else if (message.getContent().equalsIgnoreCase("$luma"))
-                        {
-                        	message.reply(message("AuroraWright", "Luma3DS", true));
-                        }
-                        else if(message.getContent().equalsIgnoreCase("$gm9"))
-                        {
-                        	message.reply(message("d0k3", "GodMode9", true));
-                        }
-                        else if(message.getContent().equalsIgnoreCase("$guide"))
-                        {
-                        	message.reply(message("Plailect", "Guide", false));
-                        }
-                        else if(message.getContent().equalsIgnoreCase("$b9s"))
-                        {
-                        	message.reply(message("SciresM", "boot9strap", true));
-                        }
+                    	//query latest release
                         else if(message.getContent().split(" ")[0].equalsIgnoreCase("$r"))
                         {
                         	String[] list = message.getContent().split(" ");
@@ -147,8 +253,8 @@ public class CatBot
                         		Calendar c = Calendar.getInstance();
                         		c.add(Calendar.MINUTE, -10);
                         		Date d = c.getTime();
-                        		RepoTS r = requests.get(author + "/" + project);
-                        		if(r == null || r.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
+                        		RepoTS repo = requests.get(author + "/" + project);
+                        		if(repo == null || repo.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
                         		new SwingWorker<Void, Void> ()
                         		{
                         			String m;
@@ -168,6 +274,7 @@ public class CatBot
                         		}.execute();
                         	}
                         }
+                    	//query latest commit
                         else if(message.getContent().split(" ")[0].equalsIgnoreCase("$c"))
                         {
                         	String[] list = message.getContent().split(" ");
@@ -182,8 +289,8 @@ public class CatBot
                         		Calendar c = Calendar.getInstance();
                         		c.add(Calendar.MINUTE, -10);
                         		Date d = c.getTime();
-                        		RepoTS r = requests.get(author + "/" + project);
-                        		if(r == null || r.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
+                        		RepoTS repo = requests.get(author + "/" + project);
+                        		if(repo == null || repo.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
                         		new SwingWorker<Void, Void> ()
                         		{
                         			String m;
