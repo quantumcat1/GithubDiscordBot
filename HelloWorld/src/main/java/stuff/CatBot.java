@@ -1,6 +1,7 @@
 package stuff;
 
 import java.io.ByteArrayOutputStream;
+import java.awt.Color;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
@@ -18,6 +19,7 @@ import javax.swing.SwingWorker;
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHRelease;
 import org.kohsuke.github.GHRepository;
+import org.kohsuke.github.GHUser;
 import org.kohsuke.github.GitHub;
 import org.kohsuke.github.PagedIterable;
 
@@ -26,6 +28,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import de.btobastian.javacord.DiscordAPI;
 import de.btobastian.javacord.Javacord;
 import de.btobastian.javacord.entities.message.Message;
+import de.btobastian.javacord.entities.message.embed.EmbedBuilder;
 import de.btobastian.javacord.listener.message.MessageCreateListener;
 
 public class CatBot
@@ -37,22 +40,21 @@ public class CatBot
 	String user;
 	String password;
 	String token;
+	//GitHub github;
+	String githubToken;
+	DiscordAPI api;
 	//ByteArrayOutputStream console;
 	boolean fetching = false;
-	public CatBot(Map<String, RepoTS> requestsc, String superUserc, List<String> authorisedUsersc, Map<String, GHRepository> shortcutsc)
+	public CatBot(String gtoken, Map<String, RepoTS> requestsc, String superUserc, List<String> authorisedUsersc, Map<String, GHRepository> shortcutsc)
 	{
-		//console = new ByteArrayOutputStream();
-		//PrintStream ps = new PrintStream(console);
-		//System.setOut(ps);
-
+		this.githubToken = gtoken;
+		GitHub github = null;
+		try {github = GitHub.connectUsingOAuth(gtoken);} catch (IOException e1) {e1.printStackTrace();}
 		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		try (InputStream input = classLoader.getResourceAsStream("config.properties"))
 		{
 			Properties prop = new Properties();
 			prop.load(input);
-
-			user = prop.getProperty("user");
-			password = prop.getProperty("password");
 			token = prop.getProperty("token");
 		}
 		catch(IOException e)
@@ -94,7 +96,7 @@ public class CatBot
 		}
 
 
-		DiscordAPI api = Javacord.getApi(token, true);
+		api = Javacord.getApi(token, true);
 
 		// connect
         api.connect(new FutureCallback<DiscordAPI>() {
@@ -134,18 +136,25 @@ public class CatBot
                     		if(repo == null || repo.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
                     		new SwingWorker<Void, Void> ()
                     		{
-                    			String m;
+                    			EmbedBuilder m;
 								@Override
 								protected Void doInBackground() throws Exception
 								{
 									fetching = true;
-									m = message(author, project, true);
+									m = embed(author, project, true);
 									return null;
 								}
 								@Override
 								protected void done()
 								{
-									message.reply(m);
+									if(m == null)
+									{
+										message.reply("Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
+									}
+									else
+									{
+										message.reply("", m);
+									}
 									fetching = false;
 								}
                     		}.execute();
@@ -198,8 +207,7 @@ public class CatBot
                     			r = null;
                     			try
                     			{
-                    				GitHub github = GitHub.connectUsingPassword(user, password);
-                    				r = github.getRepository(author + "/" + repo);
+                    				r = getRepository(author + "/" + repo);
                     				if(r == null)
                     				{
                     					message.reply("Repository " + repo + " by " + author + " not found");
@@ -233,7 +241,8 @@ public class CatBot
                         	if(message.getAuthor().getName().equals(superUser))
                         	{
                         		thing += "\n$adduser user = add specified user to authorised users list (they can add repository shortcuts)"
-                        				+ "\n$removeuser user = remove specified user from authorised users list";
+                        				+ "\n$removeuser user = remove specified user from authorised users list"
+                        				+ "\n$listusers = show list of currently authorised users";
                         	}
                         	message.reply("**Commands:**\n" + thing);
 
@@ -257,18 +266,25 @@ public class CatBot
                         		if(repo == null || repo.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
                         		new SwingWorker<Void, Void> ()
                         		{
-                        			String m;
+                        			EmbedBuilder m;
 									@Override
 									protected Void doInBackground() throws Exception
 									{
 										fetching = true;
-										m = message(author, project, true);
+										m = embed(author, project, true);
 										return null;
 									}
 									@Override
 									protected void done()
 									{
-										message.reply(m);
+										if(m == null)
+										{
+											message.reply("Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
+										}
+										else
+										{
+											message.reply("", m);
+										}
 										fetching = false;
 									}
                         		}.execute();
@@ -293,18 +309,25 @@ public class CatBot
                         		if(repo == null || repo.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
                         		new SwingWorker<Void, Void> ()
                         		{
-                        			String m;
+                        			EmbedBuilder m;
 									@Override
 									protected Void doInBackground() throws Exception
 									{
 										fetching = true;
-										m = message(author, project, false);
+										m = embed(author, project, false);
 										return null;
 									}
 									@Override
 									protected void done()
 									{
-										message.reply(m);
+										if(m == null)
+										{
+											message.reply("Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
+										}
+										else
+										{
+											message.reply("", m);
+										}
 										fetching = false;
 									}
                         		}.execute();
@@ -325,18 +348,24 @@ public class CatBot
         });
 	}
 
-	/*public String getConsole()
+	private GHRepository getRepository(String lookup)
 	{
-		return console.toString();
-	}*/
+		try
+		{
+			GitHub github = GitHub.connectUsingOAuth(githubToken);
+			return github.getRepository(lookup);
+		}
+		catch (IOException e1) {e1.printStackTrace();}
+		return null;
+
+	}
 
 	private GHCommit getLatestCommit(String lookup)
 	{
 		GHCommit latest = null;
 		try
 		{
-			GitHub github = GitHub.connectUsingPassword(user, password);
-			GHRepository repo = github.getRepository(lookup);
+			GHRepository repo = getRepository(lookup);
 			PagedIterable<GHCommit> commits = repo.listCommits();
 			List<GHCommit> list = commits.asList();
 			if(list.size() > 0)
@@ -365,11 +394,10 @@ public class CatBot
 		GHRelease latest = null;
 		try
 		{
-			GitHub github = GitHub.connectUsingPassword(user, password);
 			GHRepository repo = null;
 			try
 			{
-				repo = github.getRepository(lookup);
+				repo = getRepository(lookup);
 			}
 			catch(Exception e)
 			{
@@ -398,10 +426,29 @@ public class CatBot
 		return latest;
 	}
 
-	private String message(String author, String project, boolean isRelease)
+	private GHUser getAuthor(String lookup)
 	{
+		GHUser author = null;
+		try
+		{
+			GHRepository repo = getRepository(lookup);
+			author = repo.getOwner();
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+			return null;
+		}
+
+		return author;
+	}
+
+	private EmbedBuilder embed(String author, String project, boolean isRelease)
+	{
+		EmbedBuilder embed = new EmbedBuilder().setColor(Color.MAGENTA);
 		String lookup = author + "/" + project;
 		RepoTS r = requests.get(lookup);
+		GHUser a = getAuthor(lookup);
 
 		Calendar c = Calendar.getInstance();
 		c.add(Calendar.MINUTE, -10);
@@ -411,34 +458,70 @@ public class CatBot
 		{
 			GHRelease release = getLatestRelease(lookup);
 			GHCommit commit = getLatestCommit(lookup);
-			if(commit == null) return "Author (" + author + ") and project (" + project + ") combination not found.";
-			if(commit != null && release == null && isRelease) return project + " by " + author + " has no releases yet.";
-			r = new RepoTS(release, commit, new Date());
+			if(commit == null) //does not exist
+			{
+				embed = embed.setTitle("Not found")
+						.setDescription("Author (" + author + ") and repository (" + project + ") combination not found.");
+				return embed;
+			}
+			if(commit != null && release == null && isRelease)//exists but only commits, no releases, and also we were asked for latest release info
+			{
+				embed = embed.setTitle(project + " by " + author)
+						.setDescription("This repository has no releases yet.")
+						.setUrl("https://github.com/" + author + "/" + project)
+						.setAuthor(a.getLogin(), "https://github.com/" + a.getLogin(), a.getAvatarUrl());
+				return embed;
+			}
+			r = new RepoTS(release, commit, a, new Date());
 
 			requests.put(lookup, r);
 		}
 
 		SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
-		String date = "";
-		String link = "";
-		String desc = "";
+		embed = embed.setTitle(project + " by " + author).setDescription(r.getCommit().getOwner().getDescription());
+
 		if(isRelease)
 		{
-			date = sdf.format(r.getRelease().getPublished_at());
-			link = "https://github.com/" + author + "/"
-			+ project + "/releases/" + r.getRelease().getTagName();
-			desc = r.getRelease().getBody();
+			String tag = r.getRelease().getName();
+			String date = sdf.format(r.getRelease().getPublished_at());
+
+			String link = "https://github.com/" + author + "/"
+					+ project + "/releases/" + r.getRelease().getTagName();
+			String desc = r.getRelease().getBody();
+			if(desc.length() > 250) desc = desc.substring(0, 250) + "...";
+			embed = embed.setUrl(link)
+					.addField("Latest release: " + tag + " released " + date, desc, true);
 		}
 		else
 		{
+			String tag = r.getCommit().getSHA1();
+			String date = "";
+			String desc = "";
 			try{date = sdf.format(r.getCommit().getCommitDate());}catch(Exception e){}
-			link = "https://github.com/" + author + "/"
-			+ project + "/commit/" + r.getCommit().getSHA1();
+			try
+			{
+				GHUser committedBy = r.getCommit().getCommitter();
+				if(!a.equals(committedBy))
+				{
+					date = "by " + committedBy.getLogin() + " on the " + date;
+				}
+			}
+			catch (IOException e1) {e1.printStackTrace();}
 			try{desc = r.getCommit().getCommitShortInfo().getMessage();}catch (Exception e){}
+
+			String link = "https://github.com/" + author + "/"
+					+ project + "/commit/" + r.getCommit().getSHA1();
+			embed = embed.setUrl(link)
+					.addField("Latest commit: " + tag + " committed " + date, desc, true);
+
 		}
-		String thing = isRelease ? "release" : "commit";
-		String reply = project + " latest " + thing + ": " + date + "\n" +
-				"<" + link + ">\n" + desc;
-		return reply;
+		embed = embed.setAuthor(a.getLogin(), "https://github.com/" + a.getLogin(), a.getAvatarUrl());
+
+		return embed;
+	}
+
+	public void disconnect()
+	{
+		api.disconnect();
 	}
 }

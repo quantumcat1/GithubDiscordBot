@@ -4,18 +4,25 @@
 <html xmlns="http://www.w3.org/1999/xhtml"
 	xmlns:f="http://java.sun.com/jsf/core"
 	xmlns:h="http://java.sun.com/jsf/html"
+	xmlns:c="http://java.sun.com/jstl/core"
 	xmlns:p="http://primefaces.org/ui">
 
 <h:head>
-
-	<f:metadata>
-	    <f:viewParam name="user" value="#{tester.name}" />
-	</f:metadata>
 	<meta charset="UTF-8"/>
         <title>CatBot</title>
 
 </h:head>
 <h:body>
-<h:outputText value="#{master.hello}"/>
+<table>
+<h:form>
+<tr><td>Password: </td><td><h:inputText value="#{userBean.password}"/></td></tr>
+<tr><td>New GitHub token: </td><td><h:inputText value="#{userBean.token}"/></td></tr>
+<tr><td><h:commandButton value="Submit" action="#{userBean.changeToken()}"/></td>
+<td><h:outputText rendered="#{userBean.submitted}" value="#{userBean.text}"/></td></tr>
+</h:form>
+<h:form>
+<tr><td><h:commandButton value="#{master.text}" action="#{master.startCatbot()}" disabled="#{empty master.token}"/></td></tr>
+</h:form>
+</table>
 </h:body>
 </html>

@@ -4,17 +4,20 @@ import java.util.Date;
 
 import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHRelease;
+import org.kohsuke.github.GHUser;
 
 public class RepoTS
 {
 	private GHRelease release;
 	private GHCommit commit;
+	private GHUser author;
 	private Date timestamp;
 
-	public RepoTS(GHRelease release, GHCommit commit, Date timestamp)
+	public RepoTS(GHRelease release, GHCommit commit, GHUser author, Date timestamp)
 	{
 		this.release = release;
 		this.commit = commit;
+		this.author = author;
 		this.timestamp = timestamp;
 	}
 
@@ -35,6 +38,14 @@ public class RepoTS
 	}
 	public void setCommit(GHCommit commit) {
 		this.commit = commit;
+	}
+
+	public GHUser getAuthor() {
+		return author;
+	}
+
+	public void setAuthor(GHUser author) {
+		this.author = author;
 	}
 
 }
