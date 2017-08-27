@@ -31,8 +31,7 @@ import de.btobastian.javacord.entities.message.Message;
 import de.btobastian.javacord.entities.message.embed.EmbedBuilder;
 import de.btobastian.javacord.listener.message.MessageCreateListener;
 
-public class CatBot
-{
+public class CatBot {
 	Map<String, RepoTS> requests;
 	String superUser;
 	List<String> authorisedUsers;
@@ -40,348 +39,304 @@ public class CatBot
 	String user;
 	String password;
 	String token;
-	//GitHub github;
+	// GitHub github;
 	String githubToken;
 	DiscordAPI api;
-	//ByteArrayOutputStream console;
+	// ByteArrayOutputStream console;
 	boolean fetching = false;
-	public CatBot(String gtoken, Map<String, RepoTS> requestsc, String superUserc, List<String> authorisedUsersc, Map<String, GHRepository> shortcutsc)
-	{
+
+	public CatBot(String gtoken, Map<String, RepoTS> requestsc, String superUserc, List<String> authorisedUsersc,
+			Map<String, GHRepository> shortcutsc) {
 		this.githubToken = gtoken;
 		GitHub github = null;
-		try {github = GitHub.connectUsingOAuth(gtoken);} catch (IOException e1) {e1.printStackTrace();}
+		try {
+			github = GitHub.connectUsingOAuth(gtoken);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
 		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-		try (InputStream input = classLoader.getResourceAsStream("config.properties"))
-		{
+		try (InputStream input = classLoader.getResourceAsStream("config.properties")) {
 			Properties prop = new Properties();
 			prop.load(input);
 			token = prop.getProperty("token");
-		}
-		catch(IOException e)
-		{
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 
-		if(requestsc != null)
-		{
+		if (requestsc != null) {
 			requests = requestsc;
-		}
-		else
-		{
+		} else {
 			requests = new HashMap<>();
 		}
-		if(shortcutsc != null)
-		{
+		if (shortcutsc != null) {
 			shortcuts = shortcutsc;
-		}
-		else
-		{
+		} else {
 			shortcuts = new HashMap<>();
 		}
-		if(authorisedUsersc != null)
-		{
+		if (authorisedUsersc != null) {
 			authorisedUsers = authorisedUsersc;
-		}
-		else
-		{
+		} else {
 			authorisedUsers = new ArrayList<>();
 		}
-		if(superUserc != null)
-		{
+		if (superUserc != null) {
 			superUser = superUserc;
-		}
-		else
-		{
+		} else {
 			superUser = "ihaveahax";
 		}
-
 
 		api = Javacord.getApi(token, true);
 
 		// connect
-        api.connect(new FutureCallback<DiscordAPI>() {
-            @Override
-            public void onSuccess(DiscordAPI api) {
-                // register listener
-                api.registerListener(new MessageCreateListener() {
-                    @Override
-                    public void onMessageCreate(DiscordAPI api, final Message message) {
-                    	GHRepository r = shortcuts.get(message.getContent().split(" ")[0].substring(1));
+		api.connect(new FutureCallback<DiscordAPI>() {
+			@Override
+			public void onSuccess(DiscordAPI api) {
+				// register listener
+				api.registerListener(new MessageCreateListener() {
+					@Override
+					public void onMessageCreate(DiscordAPI api, final Message message) {
+						GHRepository r = shortcuts.get(message.getContent().split(" ")[0].substring(1));
 
-                    	//allows for it to animate .... as it is loading
-                    	if(message.getContent().contains("Fetching"))
-                    	{
-                    		while(fetching)
-                    		{
-                    			try {Thread.sleep(1000);} catch (InterruptedException e) {e.printStackTrace();}
-                    			message.edit(message.getContent() + ".");
-                    		}
-                    	}
-                    	//if not a command, get out
-                    	if(message.getContent().toCharArray()[0] != '$')
-		                {
-                    		return;
-		                }
-                    	//if a shortcut that we have previously entered
-                    	else if(r != null)
-                    	{
-                    		String temp = "";
-                    		try{temp = r.getOwner().getLogin();}catch(Exception e){e.printStackTrace();}
-                    		final String author = temp;
-                    		final String project = r.getName();
-                    		Calendar c = Calendar.getInstance();
-                    		c.add(Calendar.MINUTE, -10);
-                    		Date d = c.getTime();
-                    		RepoTS repo = requests.get(author + "/" + project);
-                    		if(repo == null || repo.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
-                    		new SwingWorker<Void, Void> ()
-                    		{
-                    			EmbedBuilder m;
+						// allows for it to animate .... as it is loading
+						if (message.getContent().contains("Fetching")) {
+							while (fetching) {
+								try {
+									Thread.sleep(1000);
+								} catch (InterruptedException e) {
+									e.printStackTrace();
+								}
+								message.edit(message.getContent() + ".");
+							}
+						}
+						// if not a command, get out
+						if (message.getContent().toCharArray()[0] != '$') {
+							return;
+						}
+						// if a shortcut that we have previously entered
+						else if (r != null) {
+							String temp = "";
+							try {
+								temp = r.getOwner().getLogin();
+							} catch (Exception e) {
+								e.printStackTrace();
+							}
+							final String author = temp;
+							final String project = r.getName();
+							Calendar c = Calendar.getInstance();
+							c.add(Calendar.MINUTE, -10);
+							Date d = c.getTime();
+							RepoTS repo = requests.get(author + "/" + project);
+							if (repo == null || repo.getTimestamp().before(d))
+								message.reply("Fetching data, please wait.");
+							new SwingWorker<Void, Void>() {
+								EmbedBuilder m;
+
 								@Override
-								protected Void doInBackground() throws Exception
-								{
+								protected Void doInBackground() throws Exception {
 									fetching = true;
 									m = embed(author, project, true);
 									return null;
 								}
+
 								@Override
-								protected void done()
-								{
-									if(m == null)
-									{
-										message.reply("Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
-									}
-									else
-									{
+								protected void done() {
+									if (m == null) {
+										message.reply(
+												"Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
+									} else {
 										message.reply("", m);
 									}
 									fetching = false;
 								}
-                    		}.execute();
-                    	}
-                    	//add new authorised user
-                    	else if(message.getAuthor().getName().equals(superUser) && message.getContent().split(" ")[0].equals("$adduser"))
-                    	{
-                    		String[] list = message.getContent().split(" ");
-                        	if(list.length < 2)
-                        	{
-                        		message.reply("You need to supply an argument - the user name of the person you want to add to the authorised users list");
-                        	}
-                        	else
-                        	{
-                        		boolean added = authorisedUsers.add(list[1]);
-                        		String thing = added ? "Successfully added " + list[1] : "Could not add " + list[1];
-                        		message.reply(thing);
-                        	}
-                    	}
-                    	//remove authorised user
-                    	else if(message.getAuthor().getName().equals(superUser) && message.getContent().split(" ")[0].equals("$removeuser"))
-                    	{
-                    		String[] list = message.getContent().split(" ");
-                        	if(list.length < 2)
-                        	{
-                        		message.reply("You need to supply an argument - the user name of the person you want to remove from the authorised users list");
-                        	}
-                        	else
-                        	{
-                        		boolean removed = authorisedUsers.remove(list[1]);
-                        		String thing = removed ? "Successfully removed " + list[1] : "Could not remove " + list[1];
-                        		message.reply(thing);
-                        	}
+							}.execute();
+						}
+						// add new authorised user
+						else if (message.getAuthor().getName().equals(superUser)
+								&& message.getContent().split(" ")[0].equals("$adduser")) {
+							String[] list = message.getContent().split(" ");
+							if (list.length < 2) {
+								message.reply(
+										"You need to supply an argument - the user name of the person you want to add to the authorised users list");
+							} else {
+								boolean added = authorisedUsers.add(list[1]);
+								String thing = added ? "Successfully added " + list[1] : "Could not add " + list[1];
+								message.reply(thing);
+							}
+						}
+						// remove authorised user
+						else if (message.getAuthor().getName().equals(superUser)
+								&& message.getContent().split(" ")[0].equals("$removeuser")) {
+							String[] list = message.getContent().split(" ");
+							if (list.length < 2) {
+								message.reply(
+										"You need to supply an argument - the user name of the person you want to remove from the authorised users list");
+							} else {
+								boolean removed = authorisedUsers.remove(list[1]);
+								String thing = removed ? "Successfully removed " + list[1]
+										: "Could not remove " + list[1];
+								message.reply(thing);
+							}
 
-                    	}
+						}
 
-                    	//adding a repo to the shortcuts
-                    	else if(message.getContent().split(" ")[0].equalsIgnoreCase("$s") && authorisedUsers.contains(message.getAuthor().getName()))
-                    	{
-                    		String[] list = message.getContent().split(" ");
-                        	if(list.length < 4)
-                        	{
-                        		message.reply("You need to supply three arguments - 1st, shortcut, 2nd, author, 3rd, repository.");
-                        	}
-                        	else
-                        	{
-                        		String shortcut = list[1];
-                        		String author = list[2];
-                        		String repo = list[3];
-                    			r = null;
-                    			try
-                    			{
-                    				r = getRepository(author + "/" + repo);
-                    				if(r == null)
-                    				{
-                    					message.reply("Repository " + repo + " by " + author + " not found");
-                    				}
-                    				else
-                    				{
-                    					shortcuts.put(shortcut, r);
-                    					message.reply(repo + " by " + author + " added successfully with shortcut $" + shortcut);
-                    				}
-                    			}
-                    			catch(Exception e)
-                    			{
-                    				e.printStackTrace();
-                    			}
-                        	}
-                    	}
-                    	//simple command to check to see if bot is awake
-                    	else if(message.getContent().equalsIgnoreCase("$ping"))
-                        {
-                        	message.reply("pong");
-                        }
-                    	//display help
-                        else if(message.getContent().equalsIgnoreCase("$help"))
-                        {
-                        	String thing = "$r author project = latest release of the specified project by the specified author\n"
-                        			+ "$c author project = latest commit of the specified project by the specified author";
-                        	if(authorisedUsers.contains(message.getAuthor().getName()))
-                        	{
-                        		thing += "\n$s shortcut author project = add shortcut to specified repository with the command 'shortcut' (don't include the '$')";
-                        	}
-                        	if(message.getAuthor().getName().equals(superUser))
-                        	{
-                        		thing += "\n$adduser user = add specified user to authorised users list (they can add repository shortcuts)"
-                        				+ "\n$removeuser user = remove specified user from authorised users list"
-                        				+ "\n$listusers = show list of currently authorised users";
-                        	}
-                        	message.reply("**Commands:**\n" + thing);
+						// adding a repo to the shortcuts
+						else if (message.getContent().split(" ")[0].equalsIgnoreCase("$s")
+								&& authorisedUsers.contains(message.getAuthor().getName())) {
+							String[] list = message.getContent().split(" ");
+							if (list.length < 4) {
+								message.reply(
+										"You need to supply three arguments - 1st, shortcut, 2nd, author, 3rd, repository.");
+							} else {
+								String shortcut = list[1];
+								String author = list[2];
+								String repo = list[3];
+								r = null;
+								try {
+									r = getRepository(author + "/" + repo);
+									if (r == null) {
+										message.reply("Repository " + repo + " by " + author + " not found");
+									} else {
+										shortcuts.put(shortcut, r);
+										message.reply(repo + " by " + author + " added successfully with shortcut $"
+												+ shortcut);
+									}
+								} catch (Exception e) {
+									e.printStackTrace();
+								}
+							}
+						}
+						// simple command to check to see if bot is awake
+						else if (message.getContent().equalsIgnoreCase("$ping")) {
+							message.reply("pong");
+						}
+						// display help
+						else if (message.getContent().equalsIgnoreCase("$help")) {
+							String thing = "$r author project = latest release of the specified project by the specified author\n"
+									+ "$c author project = latest commit of the specified project by the specified author";
+							if (authorisedUsers.contains(message.getAuthor().getName())) {
+								thing += "\n$s shortcut author project = add shortcut to specified repository with the command 'shortcut' (don't include the '$')";
+							}
+							if (message.getAuthor().getName().equals(superUser)) {
+								thing += "\n$adduser user = add specified user to authorised users list (they can add repository shortcuts)"
+										+ "\n$removeuser user = remove specified user from authorised users list"
+										+ "\n$listusers = show list of currently authorised users";
+							}
+							message.reply("**Commands:**\n" + thing);
 
-                        }
-                    	//query latest release
-                        else if(message.getContent().split(" ")[0].equalsIgnoreCase("$r"))
-                        {
-                        	String[] list = message.getContent().split(" ");
-                        	if(list.length < 3)
-                        	{
-                        		message.reply("You need to supply two arguments - 1st, author, 2nd, repository name");
-                        	}
-                        	else
-                        	{
-                        		final String author = list[1];
-                        		final String project = list[2];
-                        		Calendar c = Calendar.getInstance();
-                        		c.add(Calendar.MINUTE, -10);
-                        		Date d = c.getTime();
-                        		RepoTS repo = requests.get(author + "/" + project);
-                        		if(repo == null || repo.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
-                        		new SwingWorker<Void, Void> ()
-                        		{
-                        			EmbedBuilder m;
+						}
+						// query latest release
+						else if (message.getContent().split(" ")[0].equalsIgnoreCase("$r")) {
+							String[] list = message.getContent().split(" ");
+							if (list.length < 3) {
+								message.reply("You need to supply two arguments - 1st, author, 2nd, repository name");
+							} else {
+								final String author = list[1];
+								final String project = list[2];
+								Calendar c = Calendar.getInstance();
+								c.add(Calendar.MINUTE, -10);
+								Date d = c.getTime();
+								RepoTS repo = requests.get(author + "/" + project);
+								if (repo == null || repo.getTimestamp().before(d))
+									message.reply("Fetching data, please wait.");
+								new SwingWorker<Void, Void>() {
+									EmbedBuilder m;
+
 									@Override
-									protected Void doInBackground() throws Exception
-									{
+									protected Void doInBackground() throws Exception {
 										fetching = true;
 										m = embed(author, project, true);
 										return null;
 									}
+
 									@Override
-									protected void done()
-									{
-										if(m == null)
-										{
-											message.reply("Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
-										}
-										else
-										{
+									protected void done() {
+										if (m == null) {
+											message.reply(
+													"Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
+										} else {
 											message.reply("", m);
 										}
 										fetching = false;
 									}
-                        		}.execute();
-                        	}
-                        }
-                    	//query latest commit
-                        else if(message.getContent().split(" ")[0].equalsIgnoreCase("$c"))
-                        {
-                        	String[] list = message.getContent().split(" ");
-                        	if(list.length < 3)
-                        	{
-                        		message.reply("You need to supply two arguments - 1st, author, 2nd, repository name");
-                        	}
-                        	else
-                        	{
-                        		final String author = list[1];
-                        		final String project = list[2];
-                        		Calendar c = Calendar.getInstance();
-                        		c.add(Calendar.MINUTE, -10);
-                        		Date d = c.getTime();
-                        		RepoTS repo = requests.get(author + "/" + project);
-                        		if(repo == null || repo.getTimestamp().before(d)) message.reply("Fetching data, please wait.");
-                        		new SwingWorker<Void, Void> ()
-                        		{
-                        			EmbedBuilder m;
+								}.execute();
+							}
+						}
+						// query latest commit
+						else if (message.getContent().split(" ")[0].equalsIgnoreCase("$c")) {
+							String[] list = message.getContent().split(" ");
+							if (list.length < 3) {
+								message.reply("You need to supply two arguments - 1st, author, 2nd, repository name");
+							} else {
+								final String author = list[1];
+								final String project = list[2];
+								Calendar c = Calendar.getInstance();
+								c.add(Calendar.MINUTE, -10);
+								Date d = c.getTime();
+								RepoTS repo = requests.get(author + "/" + project);
+								if (repo == null || repo.getTimestamp().before(d))
+									message.reply("Fetching data, please wait.");
+								new SwingWorker<Void, Void>() {
+									EmbedBuilder m;
+
 									@Override
-									protected Void doInBackground() throws Exception
-									{
+									protected Void doInBackground() throws Exception {
 										fetching = true;
 										m = embed(author, project, false);
 										return null;
 									}
+
 									@Override
-									protected void done()
-									{
-										if(m == null)
-										{
-											message.reply("Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
-										}
-										else
-										{
+									protected void done() {
+										if (m == null) {
+											message.reply(
+													"Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
+										} else {
 											message.reply("", m);
 										}
 										fetching = false;
 									}
-                        		}.execute();
-                        	}
-                        }
-                        else
-                        {
-                        	if(!message.getAuthor().isYourself()) message.reply("Unrecognised command. Use \"$help\" to see a list of commands.");
-                        }
-                    }
-                });
-            }
+								}.execute();
+							}
+						} else {
+							if (!message.getAuthor().isYourself())
+								message.reply("Unrecognised command. Use \"$help\" to see a list of commands.");
+						}
+					}
+				});
+			}
 
-            @Override
-            public void onFailure(Throwable t) {
-                t.printStackTrace();
-            }
-        });
+			@Override
+			public void onFailure(Throwable t) {
+				t.printStackTrace();
+			}
+		});
 	}
 
-	private GHRepository getRepository(String lookup)
-	{
-		try
-		{
+	private GHRepository getRepository(String lookup) {
+		try {
 			GitHub github = GitHub.connectUsingOAuth(githubToken);
 			return github.getRepository(lookup);
+		} catch (IOException e1) {
+			e1.printStackTrace();
 		}
-		catch (IOException e1) {e1.printStackTrace();}
 		return null;
 
 	}
 
-	private GHCommit getLatestCommit(String lookup)
-	{
+	private GHCommit getLatestCommit(String lookup) {
 		GHCommit latest = null;
-		try
-		{
+		try {
 			GHRepository repo = getRepository(lookup);
 			PagedIterable<GHCommit> commits = repo.listCommits();
 			List<GHCommit> list = commits.asList();
-			if(list.size() > 0)
-			{
+			if (list.size() > 0) {
 				latest = list.get(0);
-				for(GHCommit c : list)
-				{
-					if(c.getCommitDate().after(latest.getCommitDate()))
-					{
+				for (GHCommit c : list) {
+					if (c.getCommitDate().after(latest.getCommitDate())) {
 						latest = c;
 					}
 				}
 			}
-		}
-		catch (IOException e)
-		{
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
@@ -389,36 +344,26 @@ public class CatBot
 		return latest;
 	}
 
-	private GHRelease getLatestRelease(String lookup)
-	{
+	private GHRelease getLatestRelease(String lookup) {
 		GHRelease latest = null;
-		try
-		{
+		try {
 			GHRepository repo = null;
-			try
-			{
+			try {
 				repo = getRepository(lookup);
-			}
-			catch(Exception e)
-			{
+			} catch (Exception e) {
 				e.printStackTrace();
 				return null;
 			}
 			List<GHRelease> releases = repo.getReleases();
-			if(releases.size() > 0)
-			{
+			if (releases.size() > 0) {
 				latest = releases.get(0);
-				for(GHRelease r : releases)
-				{
-					if(r.getPublished_at().after(latest.getPublished_at()))
-					{
+				for (GHRelease r : releases) {
+					if (r.getPublished_at().after(latest.getPublished_at())) {
 						latest = r;
 					}
 				}
 			}
-		}
-		catch (IOException e)
-		{
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return null;
@@ -426,16 +371,12 @@ public class CatBot
 		return latest;
 	}
 
-	private GHUser getAuthor(String lookup)
-	{
+	private GHUser getAuthor(String lookup) {
 		GHUser author = null;
-		try
-		{
+		try {
 			GHRepository repo = getRepository(lookup);
 			author = repo.getOwner();
-		}
-		catch(Exception e)
-		{
+		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
@@ -443,8 +384,7 @@ public class CatBot
 		return author;
 	}
 
-	private EmbedBuilder embed(String author, String project, boolean isRelease)
-	{
+	private EmbedBuilder embed(String author, String project, boolean isRelease) {
 		EmbedBuilder embed = new EmbedBuilder().setColor(Color.MAGENTA);
 		String lookup = author + "/" + project;
 		RepoTS r = requests.get(lookup);
@@ -454,20 +394,24 @@ public class CatBot
 		c.add(Calendar.MINUTE, -10);
 		Date d = c.getTime();
 
-		if(r == null || r.getTimestamp().before(d))
-		{
+		if (r == null || r.getTimestamp().before(d)) {
 			GHRelease release = getLatestRelease(lookup);
 			GHCommit commit = getLatestCommit(lookup);
-			if(commit == null) //does not exist
+			if (commit == null) // does not exist
 			{
-				embed = embed.setTitle("Not found")
-						.setDescription("Author (" + author + ") and repository (" + project + ") combination not found.");
+				embed = embed.setTitle("Not found").setDescription(
+						"Author (" + author + ") and repository (" + project + ") combination not found.");
 				return embed;
 			}
-			if(commit != null && release == null && isRelease)//exists but only commits, no releases, and also we were asked for latest release info
+			if (commit != null && release == null && isRelease)// exists but
+																// only commits,
+																// no releases,
+																// and also we
+																// were asked
+																// for latest
+																// release info
 			{
-				embed = embed.setTitle(project + " by " + author)
-						.setDescription("This repository has no releases yet.")
+				embed = embed.setTitle(project + " by " + author).setDescription("This repository has no releases yet.")
 						.setUrl("https://github.com/" + author + "/" + project)
 						.setAuthor(a.getLogin(), "https://github.com/" + a.getLogin(), a.getAvatarUrl());
 				return embed;
@@ -480,39 +424,38 @@ public class CatBot
 		SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
 		embed = embed.setTitle(project + " by " + author).setDescription(r.getCommit().getOwner().getDescription());
 
-		if(isRelease)
-		{
+		if (isRelease) {
 			String tag = r.getRelease().getName();
 			String date = sdf.format(r.getRelease().getPublished_at());
 
-			String link = "https://github.com/" + author + "/"
-					+ project + "/releases/" + r.getRelease().getTagName();
+			String link = "https://github.com/" + author + "/" + project + "/releases/" + r.getRelease().getTagName();
 			String desc = r.getRelease().getBody();
-			if(desc.length() > 250) desc = desc.substring(0, 250) + "...";
-			embed = embed.setUrl(link)
-					.addField("Latest release: " + tag + " released " + date, desc, true);
-		}
-		else
-		{
+			if (desc.length() > 250)
+				desc = desc.substring(0, 250) + "...";
+			embed = embed.setUrl(link).addField("Latest release: " + tag + " released " + date, desc, true);
+		} else {
 			String tag = r.getCommit().getSHA1();
 			String date = "";
 			String desc = "";
-			try{date = sdf.format(r.getCommit().getCommitDate());}catch(Exception e){}
-			try
-			{
+			try {
+				date = sdf.format(r.getCommit().getCommitDate());
+			} catch (Exception e) {
+			}
+			try {
 				GHUser committedBy = r.getCommit().getCommitter();
-				if(!a.equals(committedBy))
-				{
+				if (!a.equals(committedBy)) {
 					date = "by " + committedBy.getLogin() + " on the " + date;
 				}
+			} catch (IOException e1) {
+				e1.printStackTrace();
 			}
-			catch (IOException e1) {e1.printStackTrace();}
-			try{desc = r.getCommit().getCommitShortInfo().getMessage();}catch (Exception e){}
+			try {
+				desc = r.getCommit().getCommitShortInfo().getMessage();
+			} catch (Exception e) {
+			}
 
-			String link = "https://github.com/" + author + "/"
-					+ project + "/commit/" + r.getCommit().getSHA1();
-			embed = embed.setUrl(link)
-					.addField("Latest commit: " + tag + " committed " + date, desc, true);
+			String link = "https://github.com/" + author + "/" + project + "/commit/" + r.getCommit().getSHA1();
+			embed = embed.setUrl(link).addField("Latest commit: " + tag + " committed " + date, desc, true);
 
 		}
 		embed = embed.setAuthor(a.getLogin(), "https://github.com/" + a.getLogin(), a.getAvatarUrl());
@@ -520,8 +463,7 @@ public class CatBot
 		return embed;
 	}
 
-	public void disconnect()
-	{
+	public void disconnect() {
 		api.disconnect();
 	}
 }
