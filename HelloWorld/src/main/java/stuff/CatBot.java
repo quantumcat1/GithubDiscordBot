@@ -344,11 +344,18 @@ public class CatBot {
 
 		if (r == null || r.getTimestamp().before(d))
 		{
+			boolean newRelease = false;
 			GHUser a = getAuthor(lookup);
 			GHRelease release = getLatestRelease(lookup);
 			GHCommit commit = getLatestCommit(lookup);
+			if(r != null)//don't want to be announcing things just because this is the first time someone has enquired on this repo
+			{
+				newRelease = r.isNewRelease(); //if it's already true we want to keep it true (hasn't been announced yet)
+				if(!r.getRelease().equals(release)) newRelease = true; //if it wasn't already true, then make it true if there is a new release
+			}
 
 			r = new RepoTS(release, commit, a, new Date());
+			r.setNewRelease(newRelease);
 
 			requests.put(lookup, r);
 		}
@@ -447,9 +454,13 @@ public class CatBot {
 
 	public void checkRepos()
 	{
-		for(GHRepository repo : shortcuts.values())
+		for(String repo : shortcuts.keySet())
 		{
-
+			RepoTS r = fetchRepo(repo);
+			if(r.isNewRelease())
+			{
+				//make announcement here
+			}
 		}
 	}
 

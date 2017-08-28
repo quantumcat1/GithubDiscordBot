@@ -6,36 +6,41 @@ import org.kohsuke.github.GHCommit;
 import org.kohsuke.github.GHRelease;
 import org.kohsuke.github.GHUser;
 
-public class RepoTS
-{
+public class RepoTS {
 	private GHRelease release;
 	private GHCommit commit;
 	private GHUser author;
 	private Date timestamp;
+	private boolean newRelease;
 
-	public RepoTS(GHRelease release, GHCommit commit, GHUser author, Date timestamp)
-	{
+	public RepoTS(GHRelease release, GHCommit commit, GHUser author, Date timestamp) {
 		this.release = release;
 		this.commit = commit;
 		this.author = author;
 		this.timestamp = timestamp;
+		setNewRelease(false);
 	}
 
 	public GHRelease getRelease() {
 		return release;
 	}
+
 	public void setRelease(GHRelease release) {
 		this.release = release;
 	}
+
 	public Date getTimestamp() {
 		return timestamp;
 	}
+
 	public void setTimestamp(Date timestamp) {
 		this.timestamp = timestamp;
 	}
+
 	public GHCommit getCommit() {
 		return commit;
 	}
+
 	public void setCommit(GHCommit commit) {
 		this.commit = commit;
 	}
@@ -46,6 +51,14 @@ public class RepoTS
 
 	public void setAuthor(GHUser author) {
 		this.author = author;
+	}
+
+	public boolean isNewRelease() {
+		return newRelease;
+	}
+
+	public void setNewRelease(boolean newRelease) {
+		this.newRelease = newRelease;
 	}
 
 }

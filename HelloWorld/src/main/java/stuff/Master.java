@@ -7,8 +7,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.faces.bean.ApplicationScoped;
 import javax.faces.bean.ManagedBean;
 
@@ -17,10 +21,22 @@ import org.kohsuke.github.GHRepository;
 @ManagedBean
 @ApplicationScoped
 public class Master implements Serializable {
+
+	private class CheckRepos implements Runnable
+	{
+		@Override
+		public void run()
+		{
+			catbot.checkRepos();
+		}
+	}
+
 	private static final long serialVersionUID = -9082917625309737085L;
 	private CatBot catbot;
 	private String token;
 	private String password;
+
+	private ScheduledExecutorService service;
 
 	@PostConstruct
 	public void initialise() {
@@ -34,7 +50,14 @@ public class Master implements Serializable {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		service = Executors.newSingleThreadScheduledExecutor();
+        service.scheduleAtFixedRate(new CheckRepos(), 0, 10, TimeUnit.MINUTES);
 	}
+
+	@PreDestroy
+    public void destroy() {
+        service.shutdownNow();
+    }
 
 	public CatBot getCatbot() {
 		return catbot;
