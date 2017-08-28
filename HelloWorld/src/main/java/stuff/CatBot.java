@@ -1,10 +1,8 @@
 package stuff;
 
-import java.io.ByteArrayOutputStream;
 import java.awt.Color;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -39,10 +37,8 @@ public class CatBot {
 	String user;
 	String password;
 	String token;
-	// GitHub github;
 	String githubToken;
 	DiscordAPI api;
-	// ByteArrayOutputStream console;
 	boolean fetching = false;
 
 	public CatBot(String gtoken, Map<String, RepoTS> requestsc, String superUserc, List<String> authorisedUsersc,
@@ -53,12 +49,18 @@ public class CatBot {
 			github = GitHub.connectUsingOAuth(gtoken);
 		} catch (IOException e1) {
 			e1.printStackTrace();
+			try {
+				github = GitHub.connectAnonymously();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 		try (InputStream input = classLoader.getResourceAsStream("config.properties")) {
 			Properties prop = new Properties();
 			prop.load(input);
-			token = prop.getProperty("token");
+			token = prop.getProperty("test token");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -127,7 +129,8 @@ public class CatBot {
 							RepoTS repo = requests.get(author + "/" + project);
 							if (repo == null || repo.getTimestamp().before(d))
 								message.reply("Fetching data, please wait.");
-							new SwingWorker<Void, Void>() {
+							sendReply(author, project, message);
+							/*new SwingWorker<Void, Void>() {
 								EmbedBuilder m;
 
 								@Override
@@ -147,7 +150,7 @@ public class CatBot {
 									}
 									fetching = false;
 								}
-							}.execute();
+							}.execute();*/
 						}
 						// add new authorised user
 						else if (message.getAuthor().getName().equals(superUser)
@@ -237,7 +240,8 @@ public class CatBot {
 								RepoTS repo = requests.get(author + "/" + project);
 								if (repo == null || repo.getTimestamp().before(d))
 									message.reply("Fetching data, please wait.");
-								new SwingWorker<Void, Void>() {
+								sendReply(author, project, message);
+								/*new SwingWorker<Void, Void>() {
 									EmbedBuilder m;
 
 									@Override
@@ -257,7 +261,7 @@ public class CatBot {
 										}
 										fetching = false;
 									}
-								}.execute();
+								}.execute();*/
 							}
 						}
 						// query latest commit
@@ -274,7 +278,8 @@ public class CatBot {
 								RepoTS repo = requests.get(author + "/" + project);
 								if (repo == null || repo.getTimestamp().before(d))
 									message.reply("Fetching data, please wait.");
-								new SwingWorker<Void, Void>() {
+								sendReply(author, project, message);
+								/*new SwingWorker<Void, Void>() {
 									EmbedBuilder m;
 
 									@Override
@@ -294,7 +299,7 @@ public class CatBot {
 										}
 										fetching = false;
 									}
-								}.execute();
+								}.execute();*/
 							}
 						} else {
 							if (!message.getAuthor().isYourself())
@@ -312,13 +317,21 @@ public class CatBot {
 	}
 
 	private GHRepository getRepository(String lookup) {
+		GHRepository ghr = null;
 		try {
 			GitHub github = GitHub.connectUsingOAuth(githubToken);
-			return github.getRepository(lookup);
+			ghr = github.getRepository(lookup);
 		} catch (IOException e1) {
 			e1.printStackTrace();
+			try {
+				GitHub github = GitHub.connectAnonymously();
+				ghr = github.getRepository(lookup);
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
-		return null;
+		return ghr;
 
 	}
 
@@ -461,6 +474,39 @@ public class CatBot {
 		embed = embed.setAuthor(a.getLogin(), "https://github.com/" + a.getLogin(), a.getAvatarUrl());
 
 		return embed;
+	}
+
+	private void sendReply(final String author, final String project, final Message message)
+	{
+		new SwingWorker<Void, Void>() {
+			EmbedBuilder m;
+
+			@Override
+			protected Void doInBackground() throws Exception {
+				fetching = true;
+				m = embed(author, project, false);
+				return null;
+			}
+
+			@Override
+			protected void done() {
+				if (m == null) {
+					message.reply(
+							"Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
+				} else {
+					message.reply("", m);
+				}
+				fetching = false;
+			}
+		}.execute();
+	}
+
+	public void checkRepos()
+	{
+		for(GHRepository repo : shortcuts.values())
+		{
+
+		}
 	}
 
 	public void disconnect() {
