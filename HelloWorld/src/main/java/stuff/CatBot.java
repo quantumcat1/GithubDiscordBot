@@ -130,27 +130,6 @@ public class CatBot {
 							if (repo == null || repo.getTimestamp().before(d))
 								message.reply("Fetching data, please wait.");
 							sendReply(author, project, message);
-							/*new SwingWorker<Void, Void>() {
-								EmbedBuilder m;
-
-								@Override
-								protected Void doInBackground() throws Exception {
-									fetching = true;
-									m = embed(author, project, true);
-									return null;
-								}
-
-								@Override
-								protected void done() {
-									if (m == null) {
-										message.reply(
-												"Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
-									} else {
-										message.reply("", m);
-									}
-									fetching = false;
-								}
-							}.execute();*/
 						}
 						// add new authorised user
 						else if (message.getAuthor().getName().equals(superUser)
@@ -241,27 +220,6 @@ public class CatBot {
 								if (repo == null || repo.getTimestamp().before(d))
 									message.reply("Fetching data, please wait.");
 								sendReply(author, project, message);
-								/*new SwingWorker<Void, Void>() {
-									EmbedBuilder m;
-
-									@Override
-									protected Void doInBackground() throws Exception {
-										fetching = true;
-										m = embed(author, project, true);
-										return null;
-									}
-
-									@Override
-									protected void done() {
-										if (m == null) {
-											message.reply(
-													"Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
-										} else {
-											message.reply("", m);
-										}
-										fetching = false;
-									}
-								}.execute();*/
 							}
 						}
 						// query latest commit
@@ -279,27 +237,6 @@ public class CatBot {
 								if (repo == null || repo.getTimestamp().before(d))
 									message.reply("Fetching data, please wait.");
 								sendReply(author, project, message);
-								/*new SwingWorker<Void, Void>() {
-									EmbedBuilder m;
-
-									@Override
-									protected Void doInBackground() throws Exception {
-										fetching = true;
-										m = embed(author, project, false);
-										return null;
-									}
-
-									@Override
-									protected void done() {
-										if (m == null) {
-											message.reply(
-													"Connection to GitHub failed. Please try restarting CatBot, and if that doesn't work, submitting a new GitHub OAuth token.");
-										} else {
-											message.reply("", m);
-										}
-										fetching = false;
-									}
-								}.execute();*/
 							}
 						} else {
 							if (!message.getAuthor().isYourself())
@@ -397,41 +334,48 @@ public class CatBot {
 		return author;
 	}
 
-	private EmbedBuilder embed(String author, String project, boolean isRelease) {
-		EmbedBuilder embed = new EmbedBuilder().setColor(Color.MAGENTA);
-		String lookup = author + "/" + project;
+	private RepoTS fetchRepo(String lookup)
+	{
 		RepoTS r = requests.get(lookup);
-		GHUser a = getAuthor(lookup);
 
 		Calendar c = Calendar.getInstance();
 		c.add(Calendar.MINUTE, -10);
 		Date d = c.getTime();
 
-		if (r == null || r.getTimestamp().before(d)) {
+		if (r == null || r.getTimestamp().before(d))
+		{
+			GHUser a = getAuthor(lookup);
 			GHRelease release = getLatestRelease(lookup);
 			GHCommit commit = getLatestCommit(lookup);
-			if (commit == null) // does not exist
-			{
-				embed = embed.setTitle("Not found").setDescription(
-						"Author (" + author + ") and repository (" + project + ") combination not found.");
-				return embed;
-			}
-			if (commit != null && release == null && isRelease)// exists but
-																// only commits,
-																// no releases,
-																// and also we
-																// were asked
-																// for latest
-																// release info
-			{
-				embed = embed.setTitle(project + " by " + author).setDescription("This repository has no releases yet.")
-						.setUrl("https://github.com/" + author + "/" + project)
-						.setAuthor(a.getLogin(), "https://github.com/" + a.getLogin(), a.getAvatarUrl());
-				return embed;
-			}
+
 			r = new RepoTS(release, commit, a, new Date());
 
 			requests.put(lookup, r);
+		}
+
+		return r;
+	}
+
+	private EmbedBuilder embed(String author, String project, boolean isRelease) {
+		EmbedBuilder embed = new EmbedBuilder().setColor(Color.MAGENTA);
+		String lookup = author + "/" + project;
+		RepoTS r = fetchRepo(lookup);
+
+		GHCommit commit = r.getCommit();
+		GHRelease release = r.getRelease();
+		if (commit == null) // does not exist
+		{
+			embed = embed.setTitle("Not found").setDescription(
+					"Author (" + author + ") and repository (" + project + ") combination not found.");
+			return embed;
+		}
+		// exists but only commits, no releases, and also we were asked for latest release info
+		if (commit != null && release == null && isRelease)
+		{
+			embed = embed.setTitle(project + " by " + author).setDescription("This repository has no releases yet.")
+					.setUrl("https://github.com/" + author + "/" + project)
+					.setAuthor(r.getAuthor().getLogin(), "https://github.com/" + r.getAuthor().getLogin(), r.getAuthor().getAvatarUrl());
+			return embed;
 		}
 
 		SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy");
@@ -456,7 +400,7 @@ public class CatBot {
 			}
 			try {
 				GHUser committedBy = r.getCommit().getCommitter();
-				if (!a.equals(committedBy)) {
+				if (!r.getAuthor().equals(committedBy)) {
 					date = "by " + committedBy.getLogin() + " on the " + date;
 				}
 			} catch (IOException e1) {
@@ -471,7 +415,7 @@ public class CatBot {
 			embed = embed.setUrl(link).addField("Latest commit: " + tag + " committed " + date, desc, true);
 
 		}
-		embed = embed.setAuthor(a.getLogin(), "https://github.com/" + a.getLogin(), a.getAvatarUrl());
+		embed = embed.setAuthor(r.getAuthor().getLogin(), "https://github.com/" + r.getAuthor().getLogin(), r.getAuthor().getAvatarUrl());
 
 		return embed;
 	}
